@@ -19,11 +19,19 @@ function performRequest() {
     }
 }
 
-
 function showLoading() {
     return {type: "SHOW_LOADING"};
 }
 
 function hideLoading() {
     return {type: "STOP_LOADING"};
+}
+
+export function fetchRedditData(reddit) {
+    console.log("reddit", reddit);
+    return () => {
+        const sleep = new Promise(resolve => setTimeout(resolve, 2000));
+        const promise = sleep.then(() => fetch(reddit.url).then((resp) => resp.json()));
+        return Rx.Observable.fromPromise(promise);
+    }
 }
