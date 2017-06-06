@@ -29,6 +29,10 @@ import Rx from "rx";
                           redditData: redditData.data
                       };
                   })
+                  .startWith({
+                      expandedReddit: reddit.name,
+                      redditData: undefined
+                  })
             })
             .startWith({ expandedReddit: "", redditData: {} }),
 
@@ -51,6 +55,9 @@ export default class Reddit extends PureComponent {
         reddits: PropTypes.array.isRequired,
 
         fetchRedditDetails: PropTypes.func.isRequired,
+
+        expandedReddit: PropTypes.string.isRequired,
+        redditData: PropTypes.object,
     }
 
     render() {
@@ -69,8 +76,14 @@ export default class Reddit extends PureComponent {
                 {this.props.reddits.map((reddit) => (
                     <div key={reddit.name}>
                         <div onClick={() => this.props.fetchRedditDetails(reddit)}>{reddit.name}</div>
+                          {
+                              reddit.name === this.props.expandedReddit && !this.props.redditData &&
+                              <div>
+                                  Loading data for {reddit.name}
+                              </div>
+                          }
                         {
-                            reddit.name === this.props.expandedReddit &&
+                            reddit.name === this.props.expandedReddit && this.props.redditData &&
                             <div>
                                 Children: {this.props.redditData.children.length}
                             </div>
