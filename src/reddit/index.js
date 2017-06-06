@@ -19,18 +19,17 @@ import Rx from "rx";
 
         actions.fetchRedditDetails$
             .pluck(0)
-            // .scan((expandedItem, nextItem) => nextItem === expandedItem ? undefined : nextItem, undefined)
+            .scan((expandedItem, nextItem) => nextItem === expandedItem ? undefined : nextItem, undefined)
             .withLatestFrom(props$::pick("fetchRedditData"))
             .flatMapLatest(([reddit, { fetchRedditData }]) => {
-                return fetchRedditData(reddit)
-                  .map((redditData) => {
-                      return {
-                          expandedReddit: reddit.name,
-                          redditData: redditData.data
-                      };
-                  })
+
+              return Rx.Observable
+                  .of(reddit)
+                  .filter(it => it)
+                  .flatMap((reddit) => fetchRedditData(reddit))
+                  .map(redditData => ({ expandedReddit: reddit.name, redditData: redditData.data }))
                   .startWith({
-                      expandedReddit: reddit.name,
+                      expandedReddit: reddit ? reddit.name : "",
                       redditData: undefined
                   })
             })
@@ -61,6 +60,7 @@ export default class Reddit extends PureComponent {
     }
 
     render() {
+        console.log("this.props", this.props);
         if (this.props.isLoading) {
             return <div>Loading data...</div>
         }
