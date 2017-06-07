@@ -28,9 +28,17 @@ import Rx from "rx";
                   .filter(it => it)
                   .flatMap((reddit) => fetchRedditData(reddit))
                   .map(redditData => ({ expandedReddit: reddit.name, redditData: redditData.data }))
+                  .doOnNext(console.log)
+                  .flatMapLatest((redditData) => {
+                      return Rx.Observable // Add an artificial 1.5sec delay
+                          .of(redditData)
+                          .delay(1500)
+                          .map((redditData) => ({ ...redditData, isLoadingRedditData: false }))
+                          .startWith(redditData);
+                  })
                   .startWith({
                       expandedReddit: reddit ? reddit.name : "",
-                      redditData: undefined
+                      isLoadingRedditData: true
                   })
             })
             .startWith({ expandedReddit: "", redditData: {} }),
@@ -60,7 +68,6 @@ export default class Reddit extends PureComponent {
     }
 
     render() {
-        console.log("this.props", this.props);
         if (this.props.isLoading) {
             return <div>Loading data...</div>
         }
@@ -76,18 +83,18 @@ export default class Reddit extends PureComponent {
                 {this.props.reddits.map((reddit) => (
                     <div key={reddit.name}>
                         <div onClick={() => this.props.fetchRedditDetails(reddit)}>{reddit.name}</div>
-                          {
-                              reddit.name === this.props.expandedReddit && !this.props.redditData &&
-                              <div>
-                                  Loading data for {reddit.name}
-                              </div>
-                          }
-                        {
-                            reddit.name === this.props.expandedReddit && this.props.redditData &&
-                            <div>
-                                Children: {this.props.redditData.children.length}
-                            </div>
-                        }
+                            {
+                                reddit.name === this.props.expandedReddit && this.props.isLoadingRedditData &&
+                                <div>
+                                    Loading data for {reddit.name}
+                                </div>
+                            }
+                            {
+                                reddit.name === this.props.expandedReddit && !this.props.isLoadingRedditData &&
+                                <div>
+                                    Children: {this.props.redditData.children.length}
+                                </div>
+                            }
                     </div>
                 ))}
             </div>

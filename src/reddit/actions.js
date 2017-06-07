@@ -10,7 +10,7 @@ export function fetchRedditOverview() {
 function performRequest() {
     try {
         const sleep = new Promise(resolve => setTimeout(resolve, 2000));
-        const promise = sleep.then(() => fetch("http://localhost:3000/reddit.json").then((resp) => resp.json()));
+        const promise = sleep.then(() => fetch("http://localhost:3001/reddit.json").then((resp) => resp.json()));
         return Rx.Observable.fromPromise(promise);
     }
     catch (e) {
@@ -30,8 +30,7 @@ function hideLoading() {
 export function fetchRedditData(reddit) {
     console.log("reddit", reddit);
     return () => {
-        const sleep = new Promise(resolve => setTimeout(resolve, 2000));
-        const promise = sleep.then(() => fetch(reddit.url).then((resp) => resp.json()));
+        const promise = fetch(reddit.url).then((resp) => resp.json());
         return Rx.Observable.fromPromise(promise);
     }
 }
