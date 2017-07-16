@@ -5,18 +5,27 @@ import { rxConnect, ofActions } from "rx-connect";
 import pick from "./../reddit/util/pick";
 import Rx from "rx";
 
+const FIRST_FIELD = "first";
+const SECOND_FIELD = "second";
+
 @rxConnect((props$) => {
     const actions = {
+        onFocus$: new Rx.Subject(),
         selectItem$: new Rx.Subject()
     };
 
     return Rx.Observable.merge(
+        actions.onFocus$
+            .pluck(0)
+            .map((focussedField) => ({focussedField}))
+            .startWith({focussedField: FIRST_FIELD}),
+
         actions.selectItem$
             .pluck(0)
             .map((selectedItem) => (state) => {
                 const newState = { ...state};
 
-                newState.selectedItems =state.selectedItems.concat([selectedItem]);
+                newState.selectedItems = state.selectedItems.concat([selectedItem]);
 
                 if (newState.selectedItems.length === 4) {
                     newState.finished = true;
@@ -32,7 +41,9 @@ import Rx from "rx";
 })
 export default class Selecting extends PureComponent {
     static propTypes = {
+        focussedField: PropTypes.string.isRequired,
         selectedItems: PropTypes.array,
+        onFocus: PropTypes.func.isRequired,
     }
 
     static defaultProps = {
@@ -44,12 +55,27 @@ export default class Selecting extends PureComponent {
 
         return (
             <div>
-                <div>
-                    {this.props.selectedItems.length === 0 && <span>No items selected</span>}
-                    {this.props.selectedItems.map((item, i) => (<span key={i}>{item}</span>))}
+                <div style={{marginTop: 10}}>
+                    <input 
+                        style={{
+                            outline: "none",
+                            border: this.props.focussedField === FIRST_FIELD ? "1px solid black" : "none"
+                        }}
+                        type="text" 
+                        autoFocus
+                        onFocus={() => this.props.onFocus(FIRST_FIELD)}
+                    />
+                    <input 
+                        style={{
+                            outline: "none",
+                            border: this.props.focussedField === SECOND_FIELD ? "1px solid black" : "none"
+                        }}
+                        type="text" 
+                        onFocus={() => this.props.onFocus(SECOND_FIELD)}
+                    />
                 </div>
 
-                <div>
+                <div style={{marginTop: 10}}>
                     <button onClick={() => selectItem("1")}>1</button>
                     <button onClick={() => selectItem("2")}>2</button>
                     <button onClick={() => selectItem("3")}>3</button>
