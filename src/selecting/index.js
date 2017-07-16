@@ -11,39 +11,61 @@ const SECOND_FIELD = "second";
 @rxConnect((props$) => {
     const actions = {
         onFocus$: new Rx.Subject(),
-        selectItem$: new Rx.Subject()
+        onSelect$: new Rx.Subject()
     };
 
-    return Rx.Observable.merge(
-        actions.onFocus$
-            .pluck(0)
-            .map((focussedField) => ({focussedField}))
-            .startWith({focussedField: FIRST_FIELD}),
+    const inputFocussed$ = actions.onFocus$
+        .pluck(0)
+        .shareReplay(1);
 
-        actions.selectItem$
+    const selectItem$ = actions.onSelect$
             .pluck(0)
-            .map((selectedItem) => (state) => {
-                const newState = { ...state};
+            .scan((
+                result,
+                selectedItem
+            ) => {
+                const newState = { ...result};
 
-                newState.selectedItems = state.selectedItems.concat([selectedItem]);
+                newState.selectedItems = result.selectedItems.concat([selectedItem]);
 
                 if (newState.selectedItems.length === 4) {
                     newState.finished = true;
-                    newState.selectedItems = [];
                 }
 
-                return newState;
-            })
-            .startWith({ selectedItems: [], finished: false }),
+                return newState
+            }, ({ selectedItems: [], finished: false }))
+            .startWith({ selectedItems: [], finished: false })
+            .shareReplay(1);
 
-            Rx.Observable::ofActions(actions),
+    const focusInput$ = inputFocussed$
+        .merge(
+            selectItem$
+                .filter(({selectedItems}) => selectedItems.length >= 2)
+                .map(() => SECOND_FIELD)
+        )
+        .merge(
+            selectItem$
+                .filter(({selectedItems}) => selectedItems.length === 4)
+                .map(() => undefined)
+        )
+        .startWith(FIRST_FIELD)
+        .distinctUntilChanged()
+        .map((focussedField) => ({focussedField}))
+        .shareReplay(1);
+
+    return Rx.Observable.merge(
+         Rx.Observable::ofActions(actions),
+         selectItem$,
+         focusInput$
     )
 })
 export default class Selecting extends PureComponent {
     static propTypes = {
         focussedField: PropTypes.string.isRequired,
         selectedItems: PropTypes.array,
+
         onFocus: PropTypes.func.isRequired,
+        onSelect: PropTypes.func.isRequired,
     }
 
     static defaultProps = {
@@ -51,7 +73,12 @@ export default class Selecting extends PureComponent {
     }
 
     render() {
-        const { selectItem } = this.props;
+        const { selectedItems, focussedField } = this.props;
+        const { onSelect } = this.props;
+
+        console.log("focussedField", focussedField)
+
+        const getValueAtPos = (pos) => selectedItems[pos] ? selectedItems[pos] : ""
 
         return (
             <div>
@@ -59,33 +86,35 @@ export default class Selecting extends PureComponent {
                     <input 
                         style={{
                             outline: "none",
-                            border: this.props.focussedField === FIRST_FIELD ? "1px solid black" : "none"
+                            border: focussedField === FIRST_FIELD ? "1px solid black" : "none"
                         }}
                         type="text" 
                         autoFocus
                         onFocus={() => this.props.onFocus(FIRST_FIELD)}
+                        value={getValueAtPos(0) + getValueAtPos(1)}
                     />
                     <input 
                         style={{
                             outline: "none",
-                            border: this.props.focussedField === SECOND_FIELD ? "1px solid black" : "none"
+                            border: focussedField === SECOND_FIELD ? "1px solid black" : "none"
                         }}
                         type="text" 
                         onFocus={() => this.props.onFocus(SECOND_FIELD)}
+                        value={getValueAtPos(2) + getValueAtPos(3)}
                     />
                 </div>
 
                 <div style={{marginTop: 10}}>
-                    <button onClick={() => selectItem("1")}>1</button>
-                    <button onClick={() => selectItem("2")}>2</button>
-                    <button onClick={() => selectItem("3")}>3</button>
-                    <button onClick={() => selectItem("4")}>4</button>
-                    <button onClick={() => selectItem("5")}>5</button>
-                    <button onClick={() => selectItem("6")}>6</button>
-                    <button onClick={() => selectItem("7")}>7</button>
-                    <button onClick={() => selectItem("8")}>8</button>
-                    <button onClick={() => selectItem("9")}>9</button>
-                    <button onClick={() => selectItem("10")}>10</button>
+                    <button onClick={() => onSelect("1")}>1</button>
+                    <button onClick={() => onSelect("2")}>2</button>
+                    <button onClick={() => onSelect("3")}>3</button>
+                    <button onClick={() => onSelect("4")}>4</button>
+                    <button onClick={() => onSelect("5")}>5</button>
+                    <button onClick={() => onSelect("6")}>6</button>
+                    <button onClick={() => onSelect("7")}>7</button>
+                    <button onClick={() => onSelect("8")}>8</button>
+                    <button onClick={() => onSelect("9")}>9</button>
+                    <button onClick={() => onSelect("10")}>10</button>
                 </div>
 
                 <hr />
